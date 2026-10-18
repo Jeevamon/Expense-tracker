@@ -1,0 +1,198 @@
+
+<div class="page">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">PERSONAL FINANCE</p>
+      <h1>Expense Tracker</h1>
+      <p class="subtitle">Manage your money, one expense at a time.</p>
+    </div>
+    <div class="month-picker">
+      <label for="month">Summary month</label>
+      <input id="month" type="month" [(ngModel)]="selectedMonth"
+             (ngModelChange)="changeMonth()">
+    </div>
+  </header>
+
+  <div *ngIf="errorMessage" class="notice error">{{ errorMessage }}</div>
+  <div *ngIf="successMessage" class="notice success">{{ successMessage }}</div>
+
+  <section class="summary-grid">
+    <article class="summary-card featured">
+      <span>Total spent this month</span>
+      <h2>{{ (summary?.total_spent ?? 0) | currency:'INR':'symbol':'1.2-2' }}</h2>
+      <small>{{ selectedMonth }}</small>
+    </article>
+    <article class="summary-card">
+      <span>Number of expenses</span>
+      <h2>{{ summary?.expense_count ?? 0 }}</h2>
+      <small>For the selected month</small>
+    </article>
+    <article class="summary-card">
+      <span>Filtered expenses total</span>
+      <h2>{{ totalVisibleExpenses | currency:'INR':'symbol':'1.2-2' }}</h2>
+      <small>Based on your current filters</small>
+    </article>
+  </section>
+
+  <section class="panel">
+    <div class="section-heading">
+      <div>
+        <h2>{{ editingId !== null ? 'Edit expense' : 'Add an expense' }}</h2>
+        <p>Enter the details below.</p>
+      </div>
+    </div>
+
+    <form (ngSubmit)="saveExpense()" #expenseForm="ngForm">
+      <div class="form-grid">
+        <div class="field">
+          <label for="title">Expense title *</label>
+          <input id="title" name="title" [(ngModel)]="form.title"
+                 required maxlength="150" placeholder="e.g. Lunch">
+        </div>
+
+        <div class="field">
+          <label for="amount">Amount (₹) *</label>
+          <input id="amount" name="amount" type="number"
+                 [(ngModel)]="form.amount" required min="0.01"
+                 step="0.01" placeholder="0.00">
+        </div>
+
+        <div class="field">
+          <label for="category">Category *</label>
+          <select id="category" name="category" [(ngModel)]="form.category" required>
+            <option *ngFor="let category of categories" [value]="category">
+              {{ category }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="expenseDate">Date *</label>
+          <input id="expenseDate" name="expense_date" type="date"
+                 [(ngModel)]="form.expense_date" required>
+        </div>
+
+        <div class="field">
+          <label for="payment">Payment method *</label>
+          <select id="payment" name="payment_method"
+                  [(ngModel)]="form.payment_method" required>
+            <option *ngFor="let method of paymentMethods" [value]="method">
+              {{ method }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="description">Description</label>
+          <input id="description" name="description"
+                 [(ngModel)]="form.description" placeholder="Optional notes">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="primary-btn" type="submit"
+                [disabled]="saving || expenseForm.invalid">
+          {{ saving ? 'Saving...' : (editingId !== null ? 'Update expense' : 'Add expense') }}
+        </button>
+        <button *ngIf="editingId !== null" class="secondary-btn"
+                type="button" (click)="cancelEdit()">Cancel</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="section-heading">
+      <div>
+        <h2>Transactions</h2>
+        <p>View and manage your expenses.</p>
+      </div>
+      <button class="secondary-btn" type="button" (click)="loadExpenses()">
+        Refresh
+      </button>
+    </div>
+
+    <div class="filters">
+      <div class="field">
+        <label for="filterCategory">Category</label>
+        <select id="filterCategory" [(ngModel)]="selectedCategory">
+          <option value="">All categories</option>
+          <option *ngFor="let category of categories" [value]="category">
+            {{ category }}
+          </option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="startDate">From date</label>
+        <input id="startDate" type="date" [(ngModel)]="startDate">
+      </div>
+      <div class="field">
+        <label for="endDate">To date</label>
+        <input id="endDate" type="date" [(ngModel)]="endDate">
+      </div>
+      <button class="primary-btn filter-btn" type="button" (click)="applyFilters()">
+        Apply filters
+      </button>
+      <button class="secondary-btn filter-btn" type="button" (click)="clearFilters()">
+        Clear
+      </button>
+    </div>
+
+    <p *ngIf="loading" class="empty-state">Loading expenses...</p>
+
+    <div class="table-wrap" *ngIf="!loading">
+      <table>
+        <thead>
+          <tr>
+            <th>Expense</th>
+            <th>Category</th>
+            <th>Date</th>
+            <th>Payment</th>
+            <th class="amount-cell">Amount</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let expense of expenses; trackBy: trackById">
+            <td>
+              <strong>{{ expense.title }}</strong>
+              <small class="description">{{ expense.description || 'No description' }}</small>
+            </td>
+            <td><span class="category-pill">{{ expense.category }}</span></td>
+            <td>{{ expense.expense_date | date:'mediumDate' }}</td>
+            <td>{{ expense.payment_method }}</td>
+            <td class="amount-cell">
+              {{ expense.amount | currency:'INR':'symbol':'1.2-2' }}
+            </td>
+            <td>
+              <div class="row-actions">
+                <button class="edit-btn" type="button"
+                        (click)="editExpense(expense)">Edit</button>
+                <button class="delete-btn" type="button"
+                        (click)="deleteExpense(expense)">Delete</button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="expenses.length === 0">
+            <td colspan="6" class="empty-state">No expenses found for these filters.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Spending by category</h2>
+    <div *ngIf="summary && summary.categories.length > 0; else noCategories"
+         class="category-list">
+      <div class="category-row" *ngFor="let item of summary.categories">
+        <span>{{ item.category }}</span>
+        <strong>{{ item.amount | currency:'INR':'symbol':'1.2-2' }}</strong>
+      </div>
+    </div>
+    <ng-template #noCategories>
+      <p class="empty-state">No category spending recorded for this month.</p>
+    </ng-template>
+  </section>
+
+  <footer>Expense Tracker · Built with Angular, Go and MySQL</footer>
+</div>

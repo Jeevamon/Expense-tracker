@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../../OneDrive/Pictures/Desktop/Angular"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "Angular"
+	}
+}
